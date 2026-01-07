@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 /* SCENE */
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
+scene.background = new THREE.Color(0x0b1026);
 
 /* CAMERA */
 const camera = new THREE.PerspectiveCamera(
@@ -28,41 +28,45 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 /* LIGHTING */
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-dirLight.position.set(20, 30, 10);
-scene.add(dirLight);
+const moonLight = new THREE.DirectionalLight(0xb0c4ff, 0.8);
+moonLight.position.set(20, 40, 10);
+moonLight.castShadow = true;
+scene.add(moonLight);
 
-/* GROUND */
-// const ground = new THREE.Mesh(
-//   new THREE.PlaneGeometry(200, 200),
-//   new THREE.MeshStandardMaterial({ color: 0x555555 })
-// );
-// ground.rotation.x = -Math.PI / 2;
-// scene.add(ground);
+function addCityLights(city) {
+  for (let i = 0; i < 30; i++) {
+    const light = new THREE.PointLight(0xffcc88, 1, 20);
+    light.position.set(
+      (Math.random() - 0.5) * 30,
+      Math.random() * 10 + 2,
+      (Math.random() - 0.5) * 30
+    );
+    city.add(light);
+  }
+}
 
-// /* CITY */
-// for (let x = -40; x <= 40; x += 6) {
-//   for (let z = -40; z <= 40; z += 6) {
-//     if (Math.random() > 0.7) {
-//       const h = Math.random() * 10 + 5;
-//       const building = new THREE.Mesh(
-//         new THREE.BoxGeometry(4, h, 4),
-//         new THREE.MeshStandardMaterial({ color: 0x888888 })
-//       );
-//       building.position.set(x, h / 2, z);
-//       scene.add(building);
-//     }
-//   }
-// }
+const gundamLight = new THREE.SpotLight(0xffffff, 2, 30, Math.PI / 6, 0.5);
+gundamLight.position.set(-5, 15, 10);
+gundamLight.target.position.set(-5, 0, 0);
+scene.add(gundamLight);
+scene.add(gundamLight.target);
+
+const monsterLight = new THREE.SpotLight(0xff4444, 2, 30, Math.PI / 6, 0.5);
+monsterLight.position.set(5, 15, 10);
+monsterLight.target.position.set(5, 0, 0);
+scene.add(monsterLight);
+scene.add(monsterLight.target);
+
 
 const loader = new GLTFLoader();
 let city;
 let monster;
 
+
 /* ================= LOAD CITY ================= */
 loader.load(
   "/models/city.glb",
+  
   (gltf) => {
     city = gltf.scene;
     city.scale.set(15, 15, 15);
@@ -76,14 +80,19 @@ loader.load(
     });
 
     scene.add(city);
+    addCityLights(city);
+
 
     /* ===== LOAD GUNDAM SETELAH CITY ADA ===== */
     loader.load(
       "/models/gundam.glb",
       (gltf) => {
         const gundam = gltf.scene;
-        gundam.scale.set(0.1, 0.1, 0.1);
-        gundam.position.set(-0.5, 0.1, 0);
+        gundam.scale.set(0.5, 0.5, 0.5);
+        gundam.position.set(-0.5, 1.5, 0);
+        gundam.rotation.y = -Math.PI / 2;
+
+
 
         gundam.traverse(obj => {
           if (obj.isMesh) obj.castShadow = true;
@@ -98,8 +107,11 @@ loader.load(
       "/models/tung_tung_tung_sahur.glb",
       (gltf) => {
         monster = gltf.scene;
-        monster.scale.set(0.5, 0.5, 0.5);
-        monster.position.set(0.5, 0, 0);
+        monster.scale.set(3, 3, 3);
+        monster.position.set(5, 0, 0);
+        monster.rotation.y = Math.PI / 1;
+
+
 
         monster.traverse(obj => {
           if (obj.isMesh) obj.castShadow = true;
