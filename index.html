@@ -2,15 +2,149 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Gundam vs Monster - Three.js</title>
+  <title>Gundam vs Monster</title>
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; }
+    
+    /* UTILITY */
+    .hidden { display: none !important; }
+    .overlay {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(11, 16, 38, 0.95);
+      color: cyan; text-align: center;
+      transition: opacity 0.5s;
+    }
+
+    /* TYPOGRAPHY & UI */
+    h1 { font-size: 4rem; text-shadow: 0 0 20px cyan; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 5px; }
+    p { font-size: 1.2rem; color: #fff; }
+    
+    button.sci-fi-btn {
+      background: transparent; color: cyan; border: 2px solid cyan;
+      padding: 15px 40px; font-size: 1.5rem; font-weight: bold;
+      cursor: pointer; margin-top: 30px; letter-spacing: 3px;
+      transition: 0.3s; position: relative; overflow: hidden;
+    }
+    button.sci-fi-btn:hover { background: cyan; color: black; box-shadow: 0 0 30px cyan; }
+
+    /* LOADING SCREEN */
+    #loading-screen { background: #000; z-index: 200; }
+    .loader {
+      border: 4px solid #333; border-top: 4px solid cyan;
+      border-radius: 50%; width: 50px; height: 50px;
+      animation: spin 1s linear infinite; margin-bottom: 20px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* HUD (In-Game) */
+    #hud { position: fixed; inset: 0; pointer-events: none; z-index: 50; display: none; }
+    .box { background: rgb(255, 255, 255); border: 2px solid cyan; padding: 10px; position: absolute; width: 250px; }
+    #p { left: 20px; bottom: 20px; }
+    #m { right: 20px; top: 20px; border-color: red; }
+    
+    /* HEALTH BAR CONTAINER */
+    .bar { 
+        width: 100%; height: 20px; background: #333; margin-top: 5px; 
+        position: relative; /* Penting agar text bisa di-center */
+    }
+    
+    .fill { height: 100%; background: cyan; transition: width 0.3s; width: 100%; }
+    #m .fill { background: red; }
+
+    /* TEXT ANGKA HP (BARU) */
+    .hp-text {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; font-weight: bold; color: white;
+        text-shadow: 1px 1px 2px black;
+        z-index: 2;
+    }
+    
+    #act {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 10px; pointer-events: auto;
+    }
+    .game-btn {
+      padding: 10px 16px; background: black; color: cyan; border: 2px solid cyan;
+      font-weight: bold; cursor: pointer; transition: 0.3s; font-family: inherit;
+    }
+    .game-btn:hover:not(:disabled) { background: cyan; color: black; }
+    .game-btn:disabled { opacity: .5; cursor: not-allowed; border-color: gray; color: gray; }
+
+    #turn {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      font-size: 24px; text-shadow: 0 0 10px cyan; color: white;
+    }
+
+    /* FLOATING DAMAGE TEXT (BARU) */
+    .damage-popup {
+        position: absolute;
+        font-family: 'Courier New', sans-serif;
+        font-weight: 900;
+        font-size: 32px;
+        color: #ffeb3b; /* Kuning terang */
+        text-shadow: 2px 2px 0px #ff0000; /* Shadow merah */
+        pointer-events: none; /* Supaya bisa diklik tembus */
+        z-index: 100;
+        animation: floatUp 1.5s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+        0% { transform: translateY(0) scale(0.5); opacity: 0; }
+        15% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+        100% { transform: translateY(-100px) scale(1); opacity: 0; }
+    }
   </style>
 </head>
 <body>
 
-<!-- main script -->
-<script type="module" src="index.js"></script>
+  <div id="loading-screen" class="overlay">
+    <div class="loader"></div>
+    <h1>INITIALIZING...</h1>
+    <p>LOADING BATTLE ASSETS</p>
+  </div>
+
+  <div id="start-screen" class="overlay hidden">
+    <h1>MOBILE SUIT GUNDAM</h1>
+    <p>PILOT: READY FOR COMBAT</p>
+    <button id="btn-play" class="sci-fi-btn">LAUNCH MISSION</button>
+  </div>
+
+  <div id="game-over-screen" class="overlay hidden">
+    <h1 id="result-title">GAME OVER</h1>
+    <p id="result-desc">MISSION FAILED</p>
+    <button id="btn-restart" class="sci-fi-btn">RE-DEPLOY</button>
+  </div>
+
+  <div id="hud">
+    <div id="turn">PLAYER TURN</div>
+    
+    <div id="p" class="box">
+        GUNDAM RX-78
+        <div class="bar">
+            <span id="php-text" class="hp-text">100 / 100</span>
+            <div id="php" class="fill"></div>
+        </div>
+    </div>
+
+    <div id="m" class="box">
+        GODZILLA
+        <div class="bar">
+            <span id="mhp-text" class="hp-text">300 / 300</span>
+            <div id="mhp" class="fill"></div>
+        </div>
+    </div>
+
+    <div id="act">
+      <button id="atk" class="game-btn">ATTACK</button>
+      <button id="ult" class="game-btn">ULTIMATE</button>
+      <button id="def" class="game-btn">DEFEND</button>
+    </div>
+  </div>
+
+  <script type="module" src="./index.js"></script>
 
 </body>
 </html>
