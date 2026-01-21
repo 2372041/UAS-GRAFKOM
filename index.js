@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-/* ================= UI ELEMENTS & LOADING MANAGER ================= */
+// UI ELEMENTS
 const loadingScreen = document.getElementById('loading-screen');
 const startScreen = document.getElementById('start-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
@@ -12,17 +12,17 @@ const resultDesc = document.getElementById('result-desc');
 const btnPlay = document.getElementById('btn-play');
 const btnRestart = document.getElementById('btn-restart');
 
-// UI In-Game References
-const php = document.getElementById("php");           // Bar Merah/Cyan
+// IN-GAME UI
+const php = document.getElementById("php");
 const mhp = document.getElementById("mhp");
-const phpText = document.getElementById("php-text");  // Text Angka Player
-const mhpText = document.getElementById("mhp-text");  // Text Angka Monster
+const phpText = document.getElementById("php-text");
+const mhpText = document.getElementById("mhp-text");
 const turnText = document.getElementById("turn");
 const atkBtn = document.getElementById("atk");
 const ultBtn = document.getElementById("ult");
 const defBtn = document.getElementById("def");
 
-// MANAGER LOADING
+// LOADING MANAGER
 const manager = new THREE.LoadingManager();
 manager.onLoad = function () {
     console.log('All assets loaded');
@@ -30,7 +30,7 @@ manager.onLoad = function () {
     startScreen.classList.remove('hidden');
 };
 
-/* ================= KONFIGURASI TIMING & DAMAGE ================= */
+// CONFIGURATION
 const CONFIG = {
     GUNDAM_LASER_DELAY: 4000, 
     GUNDAM_LASER_DURATION: 5000, 
@@ -43,23 +43,23 @@ const DAMAGE = {
     ATK_RANDOM: 15,  
     ULT_BASE: 200,   
     ULT_RANDOM: 40,  
-    ENEMY_DMG: 100,       
+    ENEMY_DMG: 60,       
     ENEMY_DMG_DEFEND: 10 
 };
 
-/* ================= CORE ================= */
+// SCENE SETUP
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b1026);
 scene.fog = new THREE.FogExp2(0x0b1026, 0.015);
 const clock = new THREE.Clock();
 let timeScale = 1;
 
-/* ================= CAMERA ================= */
+// CAMERA
 const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 1000);
 const defaultCamPos = new THREE.Vector3(-20, 15, 20);
 camera.position.copy(defaultCamPos);
 
-/* ================= RENDERER ================= */
+// RENDERER
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -67,13 +67,13 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.3;
 document.body.appendChild(renderer.domElement);
 
-/* ================= CONTROLS ================= */
+// CONTROLS
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.target.set(7, 3, 0);
 controls.enabled = false;
 
-/* ================= LIGHT ================= */
+// LIGHTS
 scene.add(new THREE.AmbientLight(0x404060, 0.5));
 const moon = new THREE.DirectionalLight(0xb0c4ff, 2);
 moon.position.set(20, 40, 10);
@@ -83,7 +83,7 @@ const pointLight = new THREE.PointLight(0x4444ff, 1, 50);
 pointLight.position.set(7, 10, 0);
 scene.add(pointLight);
 
-/* ================= AUDIO ================= */
+// AUDIO
 const listener = new THREE.AudioListener();
 camera.add(listener);
 
@@ -117,7 +117,7 @@ function startBGM() {
     }
 }
 
-/* ================= GAME STATE & UI LOGIC ================= */
+// GAME STATE
 const GAME = {
   MENU: "MENU",
   PLAYER: "PLAYER TURN",
@@ -136,53 +136,53 @@ let defenseMode = false;
 let godMode = false;
 let atkMul = 1;
 
-// --- FUNGSI UPDATE UI (BAR & TEXT) ---
+// UI UPDATES
 function updateUI() {
-    // Hitung Persentase
+    // Calc Percent
     const pPercent = Math.max(0, (gundamHP / 100) * 100);
     const mPercent = Math.max(0, (monsterHP / 300) * 100);
 
-    // Update Lebar Bar
+    // Update Width
     php.style.width = pPercent + "%";
     mhp.style.width = mPercent + "%";
 
-    // Update Angka Text
+    // Update Text
     phpText.innerText = `${Math.max(0, gundamHP)} / 100`;
     mhpText.innerText = `${Math.max(0, monsterHP)} / 300`;
 
-    // Update Status Turn & Button
+    // Update Buttons
     turnText.innerText = gameState === GAME.MENU ? "" : gameState;
     const can = gameState === GAME.PLAYER && !isAction;
     atkBtn.disabled = ultBtn.disabled = defBtn.disabled = !can;
 }
 
-// --- FUNGSI FLOATING DAMAGE ---
+// FLOATING DAMAGE
 function showFloatingDamage(position, damage) {
-    // 1. Buat elemen
+    // Create Element
     const el = document.createElement("div");
-    el.classList.add("damage-popup"); // Class ini ada di CSS index.html
+    el.classList.add("damage-popup"); 
     el.innerText = damage;
     document.body.appendChild(el);
 
-    // 2. Kalkulasi posisi 3D ke 2D Screen
+    // 3D to 2D Position
     const vec = position.clone();
-    vec.y += 8; // Muncul agak di atas kepala model
+    vec.y += 8; 
     vec.project(camera);
 
     const x = (vec.x * 0.5 + 0.5) * window.innerWidth;
     const y = (-(vec.y * 0.5) + 0.5) * window.innerHeight;
 
-    // 3. Set posisi CSS
+    // Set CSS
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
 
-    // 4. Hapus setelah animasi selesai
+    // Remove
     setTimeout(() => {
         el.remove();
     }, 1500);
 }
 
-/* ================= LASER & EFFECTS ================= */
+// VISUAL EFFECTS
 const effectGroup = new THREE.Group();
 scene.add(effectGroup);
 let atomicBeamMesh; let rifleBeamMesh; 
@@ -245,7 +245,7 @@ function resetCam() {
     controls.update();
 }
 
-/* ================= MODELS ================= */
+// MODELS
 const loader = new GLTFLoader(manager);
 let gundam, godzilla, gMix, zMix;
 let gAct = {}, zAct = {};
@@ -280,14 +280,14 @@ loader.load("./models/godzilla_atomic_breath.glb", g => {
   if(zAct.idle) zAct.idle.play();
 });
 
-/* ================= GAME FLOW ================= */
+// GAME FLOW
 btnPlay.onclick = () => {
     startScreen.classList.add('hidden');
     hud.style.display = 'block';
     gameState = GAME.PLAYER;
     controls.enabled = true;
     startBGM();
-    updateUI(); // Ensure UI is init
+    updateUI();
 };
 
 btnRestart.onclick = () => {
@@ -334,11 +334,11 @@ function showGameOver(win) {
     }
 }
 
-/* ================= BATTLE LOGIC ================= */
+// BATTLE LOGIC
 function checkDeath() {
     if (monsterHP <= 0) {
         monsterHP = 0;
-        updateUI(); // Final update
+        updateUI();
         gameState = GAME.WIN;
         
         if(bgm.isPlaying) bgm.stop(); 
@@ -359,7 +359,7 @@ function checkDeath() {
 
     if (gundamHP <= 0) {
         gundamHP = 0;
-        updateUI(); // Final update
+        updateUI();
         gameState = GAME.LOSE;
         
         if(bgm.isPlaying) bgm.stop(); 
@@ -396,8 +396,7 @@ function resetGodzillaToIdle() {
     }
 }
 
-// --- ACTIONS WITH DAMAGE TEXT ---
-
+// ACTIONS
 function attack() {
   startBGM(); 
   isAction = true;
@@ -413,11 +412,9 @@ function attack() {
       setCinematic(7, 40, 1, 7, 0, 0);
       camShake(0.8, 500);
 
-      // Hitung Damage
       const dmg = Math.floor((DAMAGE.ATK_BASE + Math.random()*DAMAGE.ATK_RANDOM) * atkMul);
       monsterHP -= dmg;
       
-      // TAMPILKAN TEXT & UPDATE UI
       showFloatingDamage(godzilla.position, dmg);
       updateUI();
       
@@ -460,11 +457,9 @@ function ultimate() {
         setCinematic(-20, 15, 5, -2, 7, 0);
         camShake(1.5, 4000); 
 
-        // Hitung Damage
         const dmg = Math.floor((DAMAGE.ULT_BASE + Math.random()*DAMAGE.ULT_RANDOM) * atkMul);
         monsterHP -= dmg;
         
-        // TAMPILKAN TEXT & UPDATE UI
         showFloatingDamage(godzilla.position, dmg);
         updateUI();
 
@@ -527,7 +522,6 @@ function enemyTurn() {
         let dmg = defenseMode ? DAMAGE.ENEMY_DMG_DEFEND : DAMAGE.ENEMY_DMG;
         gundamHP -= dmg;
         
-        // TAMPILKAN TEXT & UPDATE UI
         showFloatingDamage(gundam.position, dmg);
         updateUI();
 
@@ -558,7 +552,7 @@ function defend() {
   setTimeout(enemyTurn, 500);
 }
 
-/* ================= INPUT & LOOP ================= */
+// EVENTS
 atkBtn.onclick = () => !isAction && gameState===GAME.PLAYER && attack();
 ultBtn.onclick = () => !isAction && gameState===GAME.PLAYER && ultimate();
 defBtn.onclick = () => !isAction && gameState===GAME.PLAYER && defend();
@@ -570,12 +564,13 @@ addEventListener("keydown", e => {
   }
 });
 
+// LOOP
 function animate() {
   requestAnimationFrame(animate);
   const d = clock.getDelta() * timeScale;
   if(gMix) gMix.update(d);
   if(zMix) zMix.update(d);
-  updateUI(); // Tidak perlu di loop agar hemat performance, dipanggil saat event saja
+  updateUI(); 
   controls.update();
   renderer.render(scene, camera);
 }
